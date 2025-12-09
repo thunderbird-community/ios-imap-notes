@@ -6,47 +6,62 @@ async function parseNote(messageId) {
     let note = {};
     note.full = await browser.messages.getFull(messageId);
     note.raw = note.full.parts[0].body;
-    note.msgHeader = await browser.messages.get(messageId);  
+    note.msgHeader = await browser.messages.get(messageId);
 
     // Abort if this is not a valid note.
-    if (      
+    if (
       !note.full.headers["x-uniform-type-identifier"] ||
       !note.full.headers["x-uniform-type-identifier"].includes("com.apple.mail-note") ||
       !note.full.parts.length == 1
     ) {
       //return false;
       return true;
-    }       
+    }
 
     // iOS device seem to introduce line breaks (\r\n) which lead to return null for htmlParts below so we remove them
-    note.raw = note.raw.replace(/(\r\n|\n|\r)/gm,"");
+    note.raw = note.raw.replace(/(\r\n|\n|\r)/gm, "");
 
-    let lowerCaseNote = note.raw.toLowerCase();        
+    let lowerCaseNote = note.raw.toLowerCase();
     // Try to parse html message or fallback to text.
     if (lowerCaseNote.includes("<body") && lowerCaseNote.includes("</body>")) {
       let htmlParts = note.raw.match(/^(.*?)<body(.*?)>(.*?)<\/body>(.*)/);
       note.htmlPrefix = `${htmlParts[1]}<body${htmlParts[2]}>`;
       note.htmlSuffix = `</body>${htmlParts[4]}`;
 
-      // Der eigentliche Inhalt (htmlParts[3]) kann mit <div, <span oder gar keinem Block-Element beginnen
       let innerContent = htmlParts[3];
 
-      // 1) Subject (der immer vor dem ersten Block-Element steht) entfernen
-      //    Apple schreibt den Betreff nochmal als reinen Text vor dem ersten Tag
-      let subjectEnd = innerContent.search(/</);  // Position des ersten "<"
-      if (subjectEnd > 0) {
-        innerContent = innerContent.substring(subjectEnd);
+      // Schritt 1: Den reinen Text vor dem ersten HTML-Tag extrahieren → das ist der "Titel im Body"
+      // Apple schreibt den Subject immer nochmal als Plaintext vor dem ersten Tag
+      let firstTagIndex = innerContent.search(/</);
+      let titleInBody = "";
+      if (firstTagIndex > 0) {
+        titleInBody = innerContent.substring(0, firstTagIndex);
+        innerContent = innerContent.substring(firstTagIndex);
+      } else if (firstTagIndex === -1) {
+        // Kein HTML-Tag → ganze Notiz ist nur Titel (sehr selten)
+        titleInBody = innerContent;
+        innerContent = "";
       }
 
-      // 2) Erstes Block-Element finden (div oder span) und nur den Tag + Inhalt behalten
-      let firstTagMatch = innerContent.match(/<(div|span)([^>]*)>/i);
-      if (firstTagMatch) {
-        // Alles ab dem ersten <div oder <span inkl. Attribute
-        note.content = innerContent.substring(firstTagMatch.index);
+      // Schritt 2: Den eigentlichen Inhalt (ab erstem Tag) übernehmen
+      // Aber: Wir wollen nur den ersten Block-Container (div oder span), nicht den reinen Text davor (den haben wir schon)
+      let contentMatch = innerContent.match(/^(\s*<(div|span)[^>]*>([\s\S]*))/i);
+      if (contentMatch) {
+        note.content = contentMatch[1]; // komplettes <div>...</div> oder <span>...</span>
       } else {
-        // Ganz selten: nur reiner Text ohne jedes Tag → einfach alles nehmen
-        note.content = innerContent;
+        // Fallback: kein div/span → leer oder nur Text
+        note.content = innerContent.trim().length > 0 ? innerContent : "<div><br></div>";
       }
+
+      // Falls keine titleInBody gefunden → aber Subject existiert → beim ersten Mal setzen
+      if (!note.titleInBody && note.full.headers.subject) {
+        note.titleInBody = note.full.headers.subject[0];
+      }
+
+      // WICHTIG: Wir merken uns den Titel im Body, falls vorhanden
+      // (wird später beim Speichern wieder exakt so eingefügt)
+      note.titleInBody = titleInBody.trim();
+
     } else {
       // Fallback für reine Text-Notes (sehr selten)
       note.htmlPrefix = "";
@@ -102,7 +117,7 @@ async function init() {
     window.close();
     return;
   }
-  
+
   try {
     document.getElementById("subjectBox").value = window.note.full.headers.subject[0];
   } catch (ex) {
@@ -127,8 +142,33 @@ async function save() {
   noteContent = noteContent.replace(/<p>/g, "<div>")
   noteContent = noteContent.replace(/<\/p>/g, "</div>")
 
-  // Adjust editor output: The returned body is without <html> and <body> tags.
-  noteContent = `${window.note.htmlPrefix}${newSubject}${noteContent}${window.note.htmlSuffix}`;
+  // === KORREKTER ZUSAMMENBAU (Apple-kompatibel) ===
+  let editorContent = window.editor.getContents();
+
+  // SunEditor → <p> in <div> umwandeln
+  editorContent = editorContent
+    .replace(/<p>/gi, '<div>')
+    .replace(/<\/p>/gi, '</div>');
+
+  // Falls der Editor leer ist → minimalen Inhalt sicherstellen
+  if (editorContent.trim() === "" || editorContent.trim() === "<div><br></div>") {
+    editorContent = "<div><br></div>";
+  }
+
+  // WICHTIG: Der lose Titel im Body MUSS immer exakt dem aktuellen Subject entsprechen!
+  // Apple synchronisiert das nicht automatisch – wenn sie unterschiedlich sind, bleibt der alte Titel stehen!
+  let titlePrefix = newSubject + "\n    "; // immer den neuen Betreff nehmen – das ist der heilige Gral!
+
+  // Endgültiger Body-Inhalt
+  let bodyContent = titlePrefix + editorContent;
+
+  // Falls irgendwie kein Block-Element am Anfang steht (sollte nicht passieren)
+  if (!/^[\s\r\n]*</.test(editorContent)) {
+    bodyContent = titlePrefix + "<div>" + editorContent + "</div>";
+  }
+
+  // Zusammenbauen
+  noteContent = window.note.htmlPrefix + bodyContent + window.note.htmlSuffix;
 
   // Adjust headers.
   for (let [name, value] of Object.entries(headers)) {
@@ -173,7 +213,7 @@ async function save() {
     keepBackup: await getPref("putOriginalInTrash"),
   });
 
-  if (newNoteMsgHeader) {    
+  if (newNoteMsgHeader) {
     // Update the edited note to be the "current" one, so we can re-save.
     window.note = await parseNote(newNoteMsgHeader.id);
     if (!window.note) {
@@ -186,7 +226,7 @@ async function save() {
     // Select the updated note.
     await browser.mailTabs.setSelectedMessages(window.tabId, [newNoteMsgHeader.id]);
   }
-  
+
   setBusy(false);
   if (newNoteMsgHeader) {
     document.getElementById("ok").classList.remove("hidden");
@@ -196,8 +236,8 @@ async function save() {
     document.getElementById("error").classList.remove("hidden");
     await new Promise(resolve => window.setTimeout(resolve, 100));
     document.getElementById("error").classList.add("hidden");
-  } 
-    
+  }
+
   window.close();
 }
 
@@ -306,8 +346,8 @@ window.addEventListener("beforeunload", event => {
 })
 
 browser.commands.onCommand.addListener(function (command, tab) {
-if (command === "saveclose-ios-editor") {
+  if (command === "saveclose-ios-editor") {
     save();
-}
+  }
 });
 
