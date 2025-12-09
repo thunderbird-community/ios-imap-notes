@@ -12,6 +12,7 @@ from John Bieling.
 Paolo "Kaosmos"
 OPTO
 John Bieling (john@thunderbird.net)
+Christian Eichert (c@zp1.net)
 
 ## Credits
 Success icon: [icons8.com](https://icons8.com/icon/63312/ok)  
