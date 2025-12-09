@@ -14,4 +14,6 @@ Success icon: [icons8.com](https://icons8.com/icon/63312/ok)
 Failure icon: [icons8.com](https://icons8.com/icon/63688/cancel)
 
 ## License
-[GPL v3](LICENSE)
+[GPL v3](LICENSE) < v1.0.2  
+[MIT](LICENSE) = v1.0.2
+
