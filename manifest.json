@@ -10,7 +10,7 @@
 	"default_locale": "en-US",
 	"applications": {
 		"gecko": {
-			"id": "iOSNotes@siliconvenice.net",
+			"id": "iOSNotes@zp1.net",
 			"strict_min_version": "115.0"
 		}
 	},
