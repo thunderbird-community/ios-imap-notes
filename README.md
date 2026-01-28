@@ -10,8 +10,9 @@ from John Bieling.
 
 ## Contributors
 * Paolo "Kaosmos"
-* Klaus “Opto” Bücher
-* John Bieling (john@thunderbird.net)
+* Klaus "Opto" Bücher
+* [JesseLujack](https://addons.thunderbird.net/user/JesseLujack/)
+* [John Bieling](https://github.com/jobisoft)
 
 ## Credits
 Success icon: [icons8.com](https://icons8.com/icon/63312/ok)  
@@ -19,4 +20,5 @@ Failure icon: [icons8.com](https://icons8.com/icon/63688/cancel)
 
 ## License
 [GPL v3](LICENSE)
+
 
