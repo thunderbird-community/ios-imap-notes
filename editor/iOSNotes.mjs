@@ -242,32 +242,65 @@ async function save() {
 }
 
 async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
-  let uid = crypto.randomUUID();
-  let newMsgFile = new File([utf8NewNote], `${uid}.eml`, { type: 'message/rfc822' });
+  // === WICHTIG: Neue UUID und Message-ID generieren, um Kollision zu vermeiden ===
+  const newUUID = crypto.randomUUID();
+  const newMessageId = `<${newUUID}@${origNoteMsgHeader.author?.split('@')[1] || 'localhost'}>`;
 
-  // Operation is piped thru a local folder, since messages.import() does not work with imap.
-  let localAccount = (await messenger.accounts.list(false)).find(account => account.type == "none");
-  let localFolders = await messenger.folders.getSubFolders(localAccount, false);
+  // Message-ID und UUID im Roh-Header ersetzen
+  let newNoteRaw = utf8NewNote
+    .replace(/^Message-Id:.*$/mi, `Message-Id: ${newMessageId}`)
+    .replace(/^X-Universally-Unique-Identifier:.*$/mi, `X-Universally-Unique-Identifier: ${newUUID.toUpperCase()}`);
+
+  let newMsgFile = new File([newNoteRaw], `${newUUID}.eml`, { type: 'message/rfc822' });
+
+  // === Lokales Konto und Trash-Ordner finden – angepasst für TB 128+ ===
+  let localAccount = (await messenger.accounts.list(false))
+    .find(account => account.type == "none");
+
+  if (!localAccount?.rootFolder?.id) {
+    console.error("Kein lokales Konto mit rootFolder gefunden");
+    return false;
+  }
+
+  // getSubFolders braucht jetzt die ID des Root-Folders (nicht mehr das Account-Objekt)
+  let localFolders = await messenger.folders.getSubFolders(localAccount.rootFolder.id, false);
+
   let trashFolder = localFolders.find(folder => folder.type == "trash");
   if (!trashFolder) {
     trashFolder = localFolders.find(folder => folder.name == "Trash");
   }
   if (!trashFolder) {
-    trashFolder = await messenger.folders.create(localAccount, "Trash");
+    // create gibt die neue Folder-ID zurück → aber wir brauchen das Folder-Objekt
+    const newTrashId = await messenger.folders.create(localAccount.id, "Trash");
+    trashFolder = await messenger.folders.get(newTrashId);
   }
 
-  let newNoteHeader = await messenger.messages.import(newMsgFile, trashFolder, {
-    flagged: origNoteMsgHeader.flagged,
-    read: origNoteMsgHeader.read,
-    tags: origNoteMsgHeader.tags
-  });
-
-  if (!newNoteHeader) {
+  if (!trashFolder?.id) {
+    console.error("Trash-Ordner konnte nicht gefunden oder erstellt werden");
     return false;
   }
-  console.log("Created [" + origNoteMsgHeader.id + " -> " + newNoteHeader.id + "]");
 
-  // Move new note from trash folder to real destination.
+  // === Import mit .id statt ganzem Folder-Objekt ===
+  let newNoteHeader;
+  try {
+    newNoteHeader = await messenger.messages.import(newMsgFile, trashFolder.id, {
+      flagged: origNoteMsgHeader.flagged,
+      read: origNoteMsgHeader.read,
+      tags: origNoteMsgHeader.tags
+    });
+  } catch (ex) {
+    console.error("Import fehlgeschlagen:", ex);
+    return false;
+  }
+
+  if (!newNoteHeader) {
+    console.error("messages.import gab null zurück");
+    return false;
+  }
+
+  console.log("Created [" + origNoteMsgHeader.id + " → " + newNoteHeader.id + "]");
+
+  // Der Rest (Verschieben + Original löschen/backup) bleibt exakt gleich wie vorher
   let newMovedMsgHeader;
   try {
     let waitCounter = 0;
@@ -284,7 +317,7 @@ async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
             m.id != origNoteMsgHeader.id
           );
           if (movedMessage) {
-            console.log("Moved [" + newNoteHeader.id + " -> " + movedMessage.id + "]");
+            console.log("Moved [" + newNoteHeader.id + " → " + movedMessage.id + "]");
             resolve(movedMessage);
             return;
           }
@@ -301,10 +334,10 @@ async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
         } else {
           window.setTimeout(checkFolder, 500);
         }
-      }
+      };
       messenger.messages.move([newNoteHeader.id], origNoteMsgHeader.folder);
       checkFolder();
-    })
+    });
   } catch (ex) {
     console.error(ex);
   }
@@ -319,6 +352,7 @@ async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
   } else {
     await messenger.messages.delete([origNoteMsgHeader.id], true);
   }
+
   return newMovedMsgHeader;
 }
 
