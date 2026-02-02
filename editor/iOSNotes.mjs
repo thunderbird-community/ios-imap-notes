@@ -133,7 +133,7 @@ async function save() {
   // Create a new RFC2822 message based on the header and body we have in
   // window.note.full.headers and window.editor.getContents.
   let noteContent = window.editor.getContents();
-  console.log(noteContent);
+  //console.log(noteContent);
   let headers = window.note.full.headers;
   let newNote = MimeText.createMimeMessage();
   let newSubject = document.getElementById("subjectBox").value;
@@ -298,7 +298,7 @@ async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
     return false;
   }
 
-  console.log("Created [" + origNoteMsgHeader.id + " → " + newNoteHeader.id + "]");
+  //console.log("Created [" + origNoteMsgHeader.id + " → " + newNoteHeader.id + "]");
 
   // Der Rest (Verschieben + Original löschen/backup) bleibt exakt gleich wie vorher
   let newMovedMsgHeader;
@@ -317,7 +317,7 @@ async function updateNote({ origNoteMsgHeader, utf8NewNote, keepBackup }) {
             m.id != origNoteMsgHeader.id
           );
           if (movedMessage) {
-            console.log("Moved [" + newNoteHeader.id + " → " + movedMessage.id + "]");
+            //console.log("Moved [" + newNoteHeader.id + " → " + movedMessage.id + "]");
             resolve(movedMessage);
             return;
           }
