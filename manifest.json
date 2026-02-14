@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "iOS IMAP Notes",
 	"description": "Edit IMAP Notes created by iOS devices within Thunderbird",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"author": "Christian Eichert",
 	"developer": {
 		"name": "Christian Eichert, Jesse Lujack, John Bieling"
@@ -48,5 +48,6 @@
 		"messagesDelete"
 	  ]
 }
+
 
 
