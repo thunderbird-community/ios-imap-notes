@@ -38,15 +38,15 @@
 		"48": "images/iOSNotes.png"
 	},
 	"permissions": [
-		"<all_urls>",
-		"activeTab",
-		"downloads",
-		"management",
-		"menus",
-		"notifications",
-		"scripting",
 		"storage",
-		"tabs"
+		"menus",
+		"messagesRead",
+		"messagesMove",
+		"messagesImport",
+		"accountsRead",
+		"accountsFolders",
+		"messagesDelete"
 	  ]
 }
+
 
