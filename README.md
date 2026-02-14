@@ -8,8 +8,8 @@ The legacy version was mostly based on code derived from the extension
 The WebExtension version for Thunderbird 115 and later was created with support
 from John Bieling.
 
-Thunderbird >121 please use v1.0.3
-Thunderbird 115 please use v1.0.2
+Thunderbird >121 please use v1.0.4
+Thunderbird 115 please use v1.0.1
 
 ## Contributors
 * Paolo "Kaosmos"
@@ -23,4 +23,5 @@ Success icon: [icons8.com](https://icons8.com/icon/63312/ok)
 Failure icon: [icons8.com](https://icons8.com/icon/63688/cancel)
 
 ## License
+
 [GPL v3](LICENSE)
