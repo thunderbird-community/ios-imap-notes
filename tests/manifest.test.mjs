@@ -30,6 +30,7 @@ test("the default manifest is the ATN edition without an Experiment", async () =
   assert.equal(manifest.version, packageJson.version);
   assert.equal(manifest.experiment_apis, undefined);
   assert.equal(manifest.theme_experiment, undefined);
+  assert.equal(manifest.permissions.includes("tabs"), false);
   assert.equal(gecko?.strict_max_version, undefined);
   assert.equal(gecko?.update_url, undefined);
 });
@@ -61,12 +62,12 @@ test("the GitHub Header Controls adapter is kept in its separate variant", async
   assert.match(experimentClient, /browser\.notesHeader\.onNewNote/);
   assert.equal(
     fragment.browser_specific_settings.gecko.update_url,
-    "https://raw.githubusercontent.com/ecxod/iOS-IMAP-Notes/master/updates/header-controls.json",
+    "https://raw.githubusercontent.com/thunderbird-community/ios-imap-notes/main/updates/header-controls.json",
   );
   assert.equal(update.version, packageJson.version);
   assert.equal(
     update.update_link,
-    `https://github.com/ecxod/iOS-IMAP-Notes/releases/download/v${packageJson.version}/thunderbird-ios-imap-notes-${packageJson.version}-header-controls.xpi`,
+    `https://github.com/thunderbird-community/ios-imap-notes/releases/download/v${packageJson.version}/thunderbird-ios-imap-notes-${packageJson.version}-header-controls.xpi`,
   );
   assert.match(update.update_link, /^https:\/\//);
   assert.match(update.update_hash, /^sha256:[0-9a-f]{64}$/);

@@ -58,7 +58,7 @@ same add-on ID. Install only one edition at a time:
 | Edition | File | Distribution | Native email actions in note mode |
 | --- | --- | --- | --- |
 | Standard | `thunderbird-ios-imap-notes-<version>.xpi` | GitHub and [Thunderbird Add-ons](https://addons.thunderbird.net/thunderbird/addon/ios-imap-notes/) | Remain visible and enabled |
-| Header Controls | `thunderbird-ios-imap-notes-<version>-header-controls.xpi` | [GitHub Releases](https://github.com/ecxod/iOS-IMAP-Notes/releases) | Reply, Forward, Archive, Junk and Star are disabled |
+| Header Controls | `thunderbird-ios-imap-notes-<version>-header-controls.xpi` | [GitHub Releases](https://github.com/thunderbird-community/ios-imap-notes/releases) | Reply, Forward, Archive, Junk and Star are disabled |
 
 The Standard edition uses only built-in Thunderbird MailExtension APIs. It is
 the edition submitted to addons.thunderbird.net. Its inline editor, Apple Note
